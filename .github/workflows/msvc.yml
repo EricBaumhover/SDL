@@ -11,15 +11,15 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - { name: Windows (x64),          flags: -A x64,   project: VisualC/SDL.sln, projectflags: '/p:Platform=x64' }
-        - { name: Windows (x86),          flags: -A Win32, project: VisualC/SDL.sln, projectflags: '/p:Platform=Win32' }
-        - { name: Windows static VCRT (x64), flags: -A x64 -DSDL_FORCE_STATIC_VCRT=ON }
-        - { name: Windows static VCRT (x86), flags: -A Win32 -DSDL_FORCE_STATIC_VCRT=ON }
-        - { name: Windows (clang-cl x64), flags: -T ClangCL -A x64 }
-        - { name: Windows (clang-cl x86), flags: -T ClangCL -A Win32 }
-        - { name: Windows (ARM),          flags: -A ARM }
-        - { name: Windows (ARM64),        flags: -A ARM64 }
-        - { name: UWP (x64),              flags: -A x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION="10.0" -DSDL_TESTS=OFF, nowerror: true,
+        - { name: Windows (x64),          id: winx64, flags: -A x64,   project: VisualC/SDL.sln, projectflags: '/p:Platform=x64' }
+        - { name: Windows (x86),          id: winx86, flags: -A Win32, project: VisualC/SDL.sln, projectflags: '/p:Platform=Win32' }
+        - { name: Windows static VCRT (x64), id: winx64vcrt, flags: -A x64 -DSDL_FORCE_STATIC_VCRT=ON }
+        - { name: Windows static VCRT (x86), id: winx86vcrt, flags: -A Win32 -DSDL_FORCE_STATIC_VCRT=ON }
+        - { name: Windows (clang-cl x64), id: winx64clang, flags: -T ClangCL -A x64 }
+        - { name: Windows (clang-cl x86), id: winx86clang, flags: -T ClangCL -A Win32 }
+        - { name: Windows (ARM),          id: winarm, flags: -A ARM }
+        - { name: Windows (ARM64),        id: winarm64, flags: -A ARM64 }
+        - { name: UWP (x64),              id: win64uwp, flags: -A x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION="10.0" -DSDL_TESTS=OFF, nowerror: true,
             project: VisualC-WinRT/SDL-UWP.sln, projectflags: '/p:Platform=x64 /p:WindowsTargetPlatformVersion=10.0.17763.0' }
 
     steps:
@@ -75,7 +75,7 @@ jobs:
     - name: Check artifacts x64
       uses: andstor/file-existence-action@v1
       with:
-        files: "x64/Release/SDL2.dll, x64/Release/SDL2.lib, x64/Release/SDL2.pdb"
+        files: "VisualC\x64/Release/SDL2.dll, VisualC\x64/Release/SDL2.lib, VisualC\x64/Release/SDL2.pdb"
         allow_failure: true
     - name: Gather artifacts
       run: |
@@ -83,12 +83,12 @@ jobs:
         md artifacts\x86
         md artifacts\x64
         md artifacts\include
-        Copy-Item "Release\SDL2.dll","Release\SDL2.lib","Release\SDL2.pdb" -Destination "artifacts\x86"
-        Copy-Item "Release\SDL2.dll","x64\Release\SDL2.lib","x64\Release\SDL2.pdb" -Destination "artifacts\x64"
+        Copy-Item "VisualC\Release\SDL2.dll","VisualC\Release\SDL2.lib","VisualC\Release\SDL2.pdb" -Destination "artifacts\x86"
+        Copy-Item "VisualC\Release\SDL2.dll","VisualC\x64\Release\SDL2.lib","VisualC\x64\Release\SDL2.pdb" -Destination "artifacts\x64"
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: hidapi-win
+        name: sdl2-win-${{ matrix.platform.id }}
         path: artifacts/
         retention-days: ${{ (github.event_name == 'pull_request' || github.ref_name != 'master') && 7 || 90 }}
 
