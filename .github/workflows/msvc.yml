@@ -75,15 +75,13 @@ jobs:
     - name: Check artifacts x64
       uses: andstor/file-existence-action@v1
       with:
-        files: "VisualC/x64/Release/SDL2.dll, VisualC/x64/Release/SDL2.lib, VisualC\x64/Release/SDL2.pdb"
+        files: "VisualC/x64/Release/SDL2.dll, VisualC/x64/Release/SDL2.lib"
         allow_failure: true
     - name: Gather artifacts
       run: |
         md artifacts
-        md artifacts\x86
         md artifacts\x64
-        md artifacts\include
-        Copy-Item "VisualC\x64\Release\SDL2.dll","VisualC\x64\Release\SDL2.lib","VisualC\x64\Release\SDL2.pdb" -Destination "artifacts\x64"
+        Copy-Item "VisualC\x64\Release\SDL2.dll","VisualC\x64\Release\SDL2.lib" -Destination "artifacts\x64"
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
