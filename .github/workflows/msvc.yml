@@ -72,3 +72,23 @@ jobs:
     - name: Build msbuild
       if: ${{ matrix.platform.project != '' }}
       run: msbuild ${{ matrix.platform.project }} /m /p:BuildInParallel=true /p:Configuration=Release ${{ matrix.platform.projectflags }}
+    - name: Check artifacts x64
+      uses: andstor/file-existence-action@v1
+      with:
+        files: "x64/Release/SDL2.dll, x64/Release/SDL2.lib, x64/Release/SDL2.pdb"
+        allow_failure: true
+    - name: Gather artifacts
+      run: |
+        md artifacts
+        md artifacts\x86
+        md artifacts\x64
+        md artifacts\include
+        Copy-Item "Release\SDL2.dll","Release\SDL2.lib","Release\SDL2.pdb" -Destination "artifacts\x86"
+        Copy-Item "Release\SDL2.dll","x64\Release\SDL2.lib","x64\Release\SDL2.pdb" -Destination "artifacts\x64"
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: hidapi-win
+        path: artifacts/
+        retention-days: ${{ (github.event_name == 'pull_request' || github.ref_name != 'master') && 7 || 90 }}
+
