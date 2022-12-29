@@ -662,6 +662,7 @@ SDL_bool Android_JNI_ShouldMinimizeOnFocusLoss()
 {
    // JNIEnv *env = Android_JNI_GetEnv();
   //  return (*env)->CallStaticBooleanMethod(env, mActivityClass, midShouldMinimizeOnFocusLoss);
+  return false;
 }
 
 SDL_bool Android_JNI_GetAccelerometerValues(float values[3])
