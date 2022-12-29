@@ -422,6 +422,35 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(JNIEnv *env, jclass cl
     checkJNIReady();
 }
 
+
+/* Lock / Unlock Mutex */
+void Android_ActivityMutex_Lock() {
+    SDL_LockMutex(Android_ActivityMutex);
+}
+
+void Android_ActivityMutex_Unlock() {
+    SDL_UnlockMutex(Android_ActivityMutex);
+}
+
+/* Lock the Mutex when the Activity is in its 'Running' state */
+void Android_ActivityMutex_Lock_Running() {
+    int pauseSignaled = 0;
+    int resumeSignaled = 0;
+
+retry:
+
+    SDL_LockMutex(Android_ActivityMutex);
+
+    pauseSignaled = SDL_SemValue(Android_PauseSem);
+    resumeSignaled = SDL_SemValue(Android_ResumeSem);
+
+    if (pauseSignaled > resumeSignaled) {
+        SDL_UnlockMutex(Android_ActivityMutex);
+        SDL_Delay(50);
+        goto retry;
+    }
+}
+
 /* Controller initialization -- called before SDL_main() to initialize JNI bindings */
 JNIEXPORT void JNICALL SDL_JAVA_CONTROLLER_INTERFACE(nativeSetupJNI)(JNIEnv *env, jclass cls)
 {
