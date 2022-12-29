@@ -168,6 +168,7 @@ static jmethodID midIsDeXMode;
 static jmethodID midShowToast;
 static jmethodID midRequestPermission;
 
+
 /* controller manager */
 static jclass mControllerManagerClass;
 
