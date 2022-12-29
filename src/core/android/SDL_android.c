@@ -75,12 +75,17 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeKeyDown)(
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeKeyUp)(
         JNIEnv *env, jclass jcls,
         jint keycode);
+		
+JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativePermissionResult)(
+    JNIEnv *env, jclass cls,
+    jint requestCode, jboolean result);
 
 static JNINativeMethod SDLActivity_tab[] = {
     { "nativeGetVersion",           "()Ljava/lang/String;", SDL_JAVA_INTERFACE(nativeGetVersion) },
     { "nativeSetupJNI",             "()I", SDL_JAVA_INTERFACE(nativeSetupJNI) },
     { "onNativeKeyDown",            "(I)V", SDL_JAVA_INTERFACE(onNativeKeyDown) },
-    { "onNativeKeyUp",              "(I)V", SDL_JAVA_INTERFACE(onNativeKeyUp) }
+    { "onNativeKeyUp",              "(I)V", SDL_JAVA_INTERFACE(onNativeKeyUp) },
+    { "nativePermissionResult", "(IZ)V", SDL_JAVA_INTERFACE(nativePermissionResult) }
 };
 
 /* Java class SDLControllerManager */
@@ -161,6 +166,7 @@ static jmethodID midGetManifestEnvironmentVariables;
 static jmethodID midIsChromebook;
 static jmethodID midIsDeXMode;
 static jmethodID midShowToast;
+static jmethodID midRequestPermission;
 
 /* controller manager */
 static jclass mControllerManagerClass;
@@ -410,12 +416,15 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(JNIEnv *env, jclass cl
     midIsChromebook = (*env)->GetStaticMethodID(env, mActivityClass, "isChromebook", "()Z");
     midIsDeXMode = (*env)->GetStaticMethodID(env, mActivityClass, "isDeXMode", "()Z");
     midShowToast = (*env)->GetStaticMethodID(env, mActivityClass, "showToast", "(Ljava/lang/String;IIII)I");
+	
+    midRequestPermission = (*env)->GetStaticMethodID(env, mActivityClass, "requestPermission", "(Ljava/lang/String;I)V");
     
     if (!midGetContext ||
         !midGetManifestEnvironmentVariables ||
         !midIsChromebook ||
         !midIsDeXMode ||
-        !midShowToast) {
+        !midShowToast || 
+		!midRequestPermission) {
         __android_log_print(ANDROID_LOG_WARN, "SDL", "Missing some Java callbacks, do you have the latest version of SDLActivity.java?");
     }
 
@@ -449,6 +458,14 @@ retry:
         SDL_Delay(50);
         goto retry;
     }
+}
+
+JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativePermissionResult)(
+    JNIEnv *env, jclass cls,
+    jint requestCode, jboolean result)
+{
+    bPermissionRequestResult = result;
+    SDL_AtomicSet(&bPermissionRequestPending, SDL_FALSE);
 }
 
 /* Controller initialization -- called before SDL_main() to initialize JNI bindings */
@@ -1258,7 +1275,25 @@ SDL_bool Android_JNI_SetRelativeMouseEnabled(SDL_bool enabled)
 
 SDL_bool Android_JNI_RequestPermission(const char *permission)
 {
-    return false;
+    JNIEnv *env = Android_JNI_GetEnv();
+    jstring jpermission;
+    const int requestCode = 1;
+
+    /* Wait for any pending request on another thread */
+    while (SDL_AtomicGet(&bPermissionRequestPending) == SDL_TRUE) {
+        SDL_Delay(10);
+    }
+    SDL_AtomicSet(&bPermissionRequestPending, SDL_TRUE);
+
+    jpermission = (*env)->NewStringUTF(env, permission);
+    (*env)->CallStaticVoidMethod(env, mActivityClass, midRequestPermission, jpermission, requestCode);
+    (*env)->DeleteLocalRef(env, jpermission);
+
+    /* Wait for the request to complete */
+    while (SDL_AtomicGet(&bPermissionRequestPending) == SDL_TRUE) {
+        SDL_Delay(10);
+    }
+    return bPermissionRequestResult;
 }
 
 /* Show toast notification */
